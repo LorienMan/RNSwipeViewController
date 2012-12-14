@@ -74,6 +74,8 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
     CGPoint _centerLastPoint;
     
     BOOL _isAnimating;
+
+    BOOL _fadeEnabled;
 }
 
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
@@ -123,6 +125,8 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
     _canShowRight = YES;
     
     _isAnimating = NO;
+
+    _fadeEnabled = YES;
 }
 
 #pragma mark - Viewcontroller
@@ -274,8 +278,9 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
         [self addChildViewController:_centerViewController];
         
         [self _loadCenter];
-        
-        [_centerContainer addSubview:_fadeView];
+
+        if (self.fadeEnabled)
+            [_centerContainer addSubview:_fadeView];
     }
 }
 
@@ -374,6 +379,13 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
     }
 }
 
+- (void)setFadeEnabled:(BOOL)fadeEnabled {
+    _fadeEnabled = fadeEnabled;
+
+    fadeEnabled ? [_centerContainer addSubview:_fadeView] : [_fadeView removeFromSuperview];
+    [self setVisibleState:_visibleState];
+}
+
 #pragma mark - Getters
 
 - (UIViewController*)visibleController {
@@ -402,6 +414,10 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
         return NO;
     }
     return _canShowRight;
+}
+
+- (BOOL)fadeEnabled {
+    return _fadeEnabled;
 }
 
 #pragma mark - Private Helpers
@@ -571,25 +587,17 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
 }
 
 - (CGFloat)_filterLeft:(CGFloat)translation {
-    if (! self.canShowRight) {
-        return 0.f;
-    }
-    
-    if (_centerContainer.left <= -1 * self.rightVisibleWidth) {
-        return self.rightVisibleWidth * -1 + translation / 10.f;
-    }
-    return translation + _centerLastPoint.x;
+    CGFloat newLocation = translation + _centerLastPoint.x;
+    newLocation = newLocation  <= -1 * self.rightVisibleWidth ? -1 * self.rightVisibleWidth + (newLocation + self.rightVisibleWidth) / 10.f: newLocation;
+    newLocation = !self.canShowRight && newLocation <= 0 ? 0 : newLocation;
+    return newLocation;
 }
 
 - (CGFloat)_filterRight:(CGFloat)translation {
-    if (! self.canShowLeft) {
-        return 0.f;
-    }
-    
-    if (_centerContainer.left >= self.leftVisibleWidth) {
-        return self.leftVisibleWidth + translation / 10.f;
-    }
-    return translation + _centerLastPoint.x;
+    CGFloat newLocation = translation + _centerLastPoint.x;
+    newLocation = newLocation >= self.leftVisibleWidth ? self.leftVisibleWidth + (newLocation - self.leftVisibleWidth) / 10.f : newLocation;
+    newLocation = !self.canShowLeft && newLocation >= 0 ? 0 : newLocation;
+    return newLocation;
 }
 
 - (CGFloat)_filterBottom:(CGFloat)translation {
@@ -712,19 +720,22 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
             }
                 break;
         }
-        
-        // add shadow to active layer
-        // could already be there if layer was visible
-        _activeContainer.layer.shadowColor = [UIColor blackColor].CGColor;
-        _activeContainer.layer.shadowRadius = 5.f;
-        _activeContainer.layer.shadowOffset = CGSizeZero;
-        _activeContainer.layer.shadowOpacity = 0.5f;
-        
-        // turn ON rasterizing for scrolling performance
-        _activeContainer.layer.shouldRasterize = YES;
-        
-        // ensure fadeing view is visible
-        _fadeView.hidden = NO;
+
+        if (self.fadeEnabled) {
+            // add shadow to active layer
+            // could already be there if layer was visible
+            _activeContainer.layer.shadowColor = [UIColor blackColor].CGColor;
+            _activeContainer.layer.shadowRadius = 5.f;
+            _activeContainer.layer.shadowOffset = CGSizeZero;
+            _activeContainer.layer.shadowOpacity = 0.5f;
+
+            // turn ON rasterizing for scrolling performance
+            _activeContainer.layer.shouldRasterize = YES;
+
+            // ensure fadeing view is visible
+            _fadeView.hidden = NO;
+        }
+
     }
     
     // changing a pan gesture
@@ -764,7 +775,7 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
 
         // calculate the amount of fading
         // max static var defined as kRNSwipeMaxFadeOpacity in top of file
-        if (doFade) {
+        if (doFade && self.fadeEnabled) {
             CGFloat position = 0.f;
             CGFloat threshold = 0.f;
             switch (_activeDirection) {

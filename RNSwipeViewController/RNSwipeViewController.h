@@ -240,6 +240,15 @@ extern NSString * const RNSwipeViewControllerCenterDidAppear;
  */
 @property (assign, nonatomic) BOOL canTapOut;
 
+/** Enable/disable fade and shadow.
+
+ Default YES;
+
+ @see canShowLeft
+ @see canShowRight
+ */
+@property (assign, nonatomic) BOOL fadeEnabled;
+
 ///---------------------------------------------------------------------------------------
 /// @name Controller Delegates
 ///---------------------------------------------------------------------------------------
