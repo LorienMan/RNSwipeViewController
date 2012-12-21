@@ -28,6 +28,7 @@
 #import "RNDirectionPanGestureRecognizer.h"
 #import "UIView+Sizes.h"
 #import "UIApplication+AppDimensions.h"
+#import "RNSwipeViewControllerProtocol.h"
 
 NSString * const RNSwipeViewControllerLeftWillAppear = @"com.whoisryannystrom.RNSwipeViewControllerLeftWillAppear";
 NSString * const RNSwipeViewControllerLeftDidAppear = @"com.whoisryannystrom.RNSwipeViewControllerLeftDidAppear";
@@ -127,6 +128,8 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
     _isAnimating = NO;
 
     _fadeEnabled = YES;
+
+    _bounces = YES;
 }
 
 #pragma mark - Viewcontroller
@@ -174,11 +177,19 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
     _tapGesture.numberOfTapsRequired = 1;
 
     [self.view addGestureRecognizer:_panGesture];
+    [self _layoutContainersAnimated:NO duration:0.f];
 }
 
-- (void)viewWillAppear:(BOOL)animated {
-    [super viewWillAppear:animated];
-    [self _layoutContainersAnimated:NO duration:0.f];
+- (void)viewDidAppear:(BOOL)animated {
+    [super viewDidAppear:animated];
+
+    [self setController:self.visibleController active:YES];
+}
+
+- (void)viewDidDisappear:(BOOL)animated {
+    [super viewDidDisappear:animated];
+
+    [self setController:self.visibleController active:NO];
 }
 
 - (void)viewDidLayoutSubviews {
@@ -188,6 +199,10 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
 - (void)willRotateToInterfaceOrientation:(UIInterfaceOrientation)toInterfaceOrientation duration:(NSTimeInterval)duration {
     [super willRotateToInterfaceOrientation:toInterfaceOrientation duration:duration];
     [self _resizeForOrienation:toInterfaceOrientation];
+}
+
+- (BOOL)onScreen {
+    return self.isViewLoaded && self.view.window;
 }
 
 #pragma mark - Public methods
@@ -271,7 +286,7 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
 
 #pragma mark - Setters
 
-- (void)setCenterViewController:(UIViewController *)centerViewController {
+- (void)setCenterViewController:(UIViewController <RNSwipeViewControllerProtocol> *)centerViewController {
     if (_centerViewController != centerViewController) {
         _centerViewController = centerViewController;
         
@@ -284,7 +299,7 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
     }
 }
 
-- (void)setRightViewController:(UIViewController *)rightViewController {
+- (void)setRightViewController:(UIViewController <RNSwipeViewControllerProtocol> *)rightViewController {
     if (_rightViewController != rightViewController) {
         rightViewController.view.frame = _rightContainer.bounds;
         _rightViewController = rightViewController;
@@ -295,7 +310,7 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
     }
 }
 
-- (void)setLeftViewController:(UIViewController *)leftViewController {
+- (void)setLeftViewController:(UIViewController <RNSwipeViewControllerProtocol> *)leftViewController {
     if (_leftViewController != leftViewController) {
         leftViewController.view.frame = _leftContainer.bounds;
         _leftViewController = leftViewController;
@@ -306,7 +321,7 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
     }
 }
 
-- (void)setBottomViewController:(UIViewController *)bottomViewController {
+- (void)setBottomViewController:(UIViewController <RNSwipeViewControllerProtocol> *)bottomViewController {
     if (_bottomViewController != bottomViewController) {
         bottomViewController.view.frame = _bottomContainer.bounds;
         _bottomViewController = bottomViewController;
@@ -318,7 +333,18 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
 }
 
 - (void)setVisibleState:(RNSwipeVisible)visibleState {
+    if (_visibleState == visibleState)
+        return;
+
+    UIViewController <RNSwipeViewControllerProtocol> *old = self.visibleController;
     _visibleState = visibleState;
+    UIViewController <RNSwipeViewControllerProtocol> *new = self.visibleController;
+
+    if (self.onScreen) {
+        [self setController:old active:NO];
+        [self setController:new active:YES];
+    }
+
     if (visibleState == RNSwipeVisibleCenter) {
         // remove shadows
         [UIView animateWithDuration:0.1f
@@ -384,6 +410,16 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
 
     fadeEnabled ? [_centerContainer addSubview:_fadeView] : [_fadeView removeFromSuperview];
     [self setVisibleState:_visibleState];
+}
+
+- (void)setController:(UIViewController <RNSwipeViewControllerProtocol> *)controller active:(BOOL)active {
+    if (!active && controller.active && [controller respondsToSelector:@selector(controllerBecameInactiveInContainer)]) {
+        controller.active = NO;
+        [controller controllerBecameInactiveInContainer];
+    } else if (active && !controller.active && [controller respondsToSelector:@selector(controllerBecameActiveInContainer)]) {
+        controller.active = YES;
+        [controller controllerBecameActiveInContainer];
+    }
 }
 
 #pragma mark - Getters
@@ -486,7 +522,9 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
     [self.centerViewController viewWillAppear:animate];
     
     void (^block)(void) = [self _toResetContainers];
-    
+
+    self.visibleState = RNSwipeVisibleCenter;
+
     if (animate) {
         _fadeView.hidden = NO;
         [UIView animateWithDuration:duration
@@ -503,8 +541,6 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
                                  _centerLastPoint = CGPointZero;
                                  _fadeView.hidden = YES;
                                  _activeContainer = _centerContainer;
-                                 
-                                 self.visibleState = RNSwipeVisibleCenter;
                                  
                                  [[NSNotificationCenter defaultCenter] postNotificationName:RNSwipeViewControllerCenterDidAppear object:nil];
                                  if (self.swipeDelegate && [self.swipeDelegate respondsToSelector:@selector(swipeController:didShowController:)]) {
@@ -588,14 +624,14 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
 
 - (CGFloat)_filterLeft:(CGFloat)translation {
     CGFloat newLocation = translation + _centerLastPoint.x;
-    newLocation = newLocation  <= -1 * self.rightVisibleWidth ? -1 * self.rightVisibleWidth + (newLocation + self.rightVisibleWidth) / 10.f: newLocation;
+    newLocation = newLocation  <= -1 * self.rightVisibleWidth ? -1 * self.rightVisibleWidth + (_bounces ? (newLocation + self.rightVisibleWidth) / 10.f : 0) : newLocation;
     newLocation = !self.canShowRight && newLocation <= 0 ? 0 : newLocation;
     return newLocation;
 }
 
 - (CGFloat)_filterRight:(CGFloat)translation {
     CGFloat newLocation = translation + _centerLastPoint.x;
-    newLocation = newLocation >= self.leftVisibleWidth ? self.leftVisibleWidth + (newLocation - self.leftVisibleWidth) / 10.f : newLocation;
+    newLocation = newLocation >= self.leftVisibleWidth ? self.leftVisibleWidth + (_bounces ? (newLocation - self.leftVisibleWidth) / 10.f : 0) : newLocation;
     newLocation = !self.canShowLeft && newLocation >= 0 ? 0 : newLocation;
     return newLocation;
 }
@@ -677,6 +713,8 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
 - (void)_handlePan:(RNDirectionPanGestureRecognizer*)recognizer {
     // beginning a pan gesture
     if (recognizer.state == UIGestureRecognizerStateBegan) {
+        [self setController:self.visibleController active:NO];
+
         _activeDirection = recognizer.direction;
         
         _isAnimating = YES;
@@ -805,6 +843,7 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
 
     // ending a pan gesture
     if (recognizer.state == UIGestureRecognizerStateEnded) {
+        RNSwipeVisible old = self.visibleState;
         // seems redundant, but it isn't
         if (_centerContainer.left > self.leftVisibleWidth / 2.f) {
             // left will be shown
@@ -831,6 +870,10 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
             CGFloat duration = [self _remainingDuration:position threshold:threshold];
             [self _layoutContainersAnimated:YES duration:duration];
             self.visibleState = RNSwipeVisibleCenter;
+        }
+
+        if (self.visibleState == old) {
+            [self setController:self.visibleController active:YES];
         }
     }
 }

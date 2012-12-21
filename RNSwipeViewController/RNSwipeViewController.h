@@ -57,6 +57,8 @@ extern NSString * const RNSwipeViewControllerCenterDidAppear;
 #import <UIKit/UIKit.h>
 #import "RNSwipeViewControllerDelegate.h"
 
+@protocol RNSwipeViewControllerProtocol;
+
 /** Handles the organization and displaying of view controllers.
  
  An RNSwipeViewController instance should be initialized first and then assigned a left, right, and/or bottom view controllers before adding to your scene. RNSwipeViewController is a class that should be used similar to UINavigationController in that it is a master controller who's displayed view controllers contain all logic and view data.
@@ -123,25 +125,25 @@ extern NSString * const RNSwipeViewControllerCenterDidAppear;
  
  @see visibleController
  */
-@property (strong, nonatomic) UIViewController *centerViewController;
+@property (strong, nonatomic) UIViewController <RNSwipeViewControllerProtocol> *centerViewController;
 
 /** The left view controller that can be displayed with a right-swipe.
  
  @see visibleController
  */
-@property (strong, nonatomic) UIViewController *leftViewController;
+@property (strong, nonatomic) UIViewController <RNSwipeViewControllerProtocol> *leftViewController;
 
 /** The bottom view controller that can be displayed with an up-swipe.
  
  @see visibleController
  */
-@property (strong, nonatomic) UIViewController *bottomViewController;
+@property (strong, nonatomic) UIViewController <RNSwipeViewControllerProtocol> *bottomViewController;
 
 /** The right view controller that can be displayed with a left-swipe.
  
  @see visibleController
  */
-@property (strong, nonatomic) UIViewController *rightViewController;
+@property (strong, nonatomic) UIViewController <RNSwipeViewControllerProtocol> *rightViewController;
 
 ///---------------------------------------------------------------------------------------
 /// @name Controller Properties
@@ -170,6 +172,10 @@ extern NSString * const RNSwipeViewControllerCenterDidAppear;
  @see bottomViewController
  */
 @property (assign, nonatomic) CGFloat bottomVisibleHeight;
+
+/** Whether you can bounce the controllers.
+ */
+@property (assign, nonatomic) BOOL bounces;
 
 ///---------------------------------------------------------------------------------------
 /// @name Controller Status
@@ -201,7 +207,7 @@ extern NSString * const RNSwipeViewControllerCenterDidAppear;
  @see isToggled
  @see visibleState
  */
-@property (readonly, nonatomic) UIViewController *visibleController;
+@property (readonly, nonatomic) UIViewController <RNSwipeViewControllerProtocol> *visibleController;
 
 ///---------------------------------------------------------------------------------------
 /// @name Controller Utilities
