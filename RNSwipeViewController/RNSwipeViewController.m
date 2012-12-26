@@ -624,14 +624,18 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
 
 - (CGFloat)_filterLeft:(CGFloat)translation {
     CGFloat newLocation = translation + _centerLastPoint.x;
-    newLocation = newLocation  <= -1 * self.rightVisibleWidth ? -1 * self.rightVisibleWidth + (_bounces ? (newLocation + self.rightVisibleWidth) / 10.f : 0) : newLocation;
+    newLocation = newLocation >= self.leftVisibleWidth ? self.leftVisibleWidth + (_bounces ? (newLocation - self.leftVisibleWidth) / 10.f : 0) : newLocation;
+    newLocation = newLocation <= -1 * self.rightVisibleWidth ? -1 * self.rightVisibleWidth + (_bounces ? (newLocation + self.rightVisibleWidth) / 10.f : 0) : newLocation;
     newLocation = !self.canShowRight && newLocation <= 0 ? 0 : newLocation;
+    newLocation = !self.canShowLeft && newLocation >= 0 ? 0 : newLocation;
     return newLocation;
 }
 
 - (CGFloat)_filterRight:(CGFloat)translation {
     CGFloat newLocation = translation + _centerLastPoint.x;
     newLocation = newLocation >= self.leftVisibleWidth ? self.leftVisibleWidth + (_bounces ? (newLocation - self.leftVisibleWidth) / 10.f : 0) : newLocation;
+    newLocation = newLocation <= -1 * self.rightVisibleWidth ? -1 * self.rightVisibleWidth + (_bounces ? (newLocation + self.rightVisibleWidth) / 10.f : 0) : newLocation;
+    newLocation = !self.canShowRight && newLocation <= 0 ? 0 : newLocation;
     newLocation = !self.canShowLeft && newLocation >= 0 ? 0 : newLocation;
     return newLocation;
 }
