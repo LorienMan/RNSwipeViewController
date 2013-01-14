@@ -292,9 +292,11 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
 
 - (void)setCenterViewController:(UIViewController <RNSwipeViewControllerProtocol> *)centerViewController {
     if (_centerViewController != centerViewController) {
+        [_centerViewController.view removeFromSuperview];
         _centerViewController = centerViewController;
-        
-        [self addChildViewController:_centerViewController];
+
+        if (_centerContainer)
+            [self addChildViewController:_centerViewController];
         
         [self _loadCenter];
 
@@ -305,10 +307,12 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
 
 - (void)setRightViewController:(UIViewController <RNSwipeViewControllerProtocol> *)rightViewController {
     if (_rightViewController != rightViewController) {
+        [_rightViewController.view removeFromSuperview];
         rightViewController.view.frame = _rightContainer.bounds;
         _rightViewController = rightViewController;
-        
-        [self addChildViewController:_rightViewController];
+
+        if (_rightViewController)
+            [self addChildViewController:_rightViewController];
         
         [self _loadRight];
     }
@@ -316,10 +320,12 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
 
 - (void)setLeftViewController:(UIViewController <RNSwipeViewControllerProtocol> *)leftViewController {
     if (_leftViewController != leftViewController) {
+        [_leftViewController.view removeFromSuperview];
         leftViewController.view.frame = _leftContainer.bounds;
         _leftViewController = leftViewController;
-        
-        [self addChildViewController:_leftViewController];
+
+        if (_leftViewController)
+            [self addChildViewController:_leftViewController];
         
         [self _loadLeft];
     }
@@ -327,10 +333,12 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
 
 - (void)setBottomViewController:(UIViewController <RNSwipeViewControllerProtocol> *)bottomViewController {
     if (_bottomViewController != bottomViewController) {
+        [_bottomViewController.view removeFromSuperview];
         bottomViewController.view.frame = _bottomContainer.bounds;
         _bottomViewController = bottomViewController;
-        
-        [self addChildViewController:_bottomViewController];
+
+        if (_bottomViewController)
+            [self addChildViewController:_bottomViewController];
         
         [self _loadBottom];
     }
