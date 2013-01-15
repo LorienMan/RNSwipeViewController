@@ -299,7 +299,7 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
         [_centerViewController.view removeFromSuperview];
         _centerViewController = centerViewController;
 
-        if (_centerContainer)
+        if (_centerViewController)
             [self addChildViewController:_centerViewController];
         
         [self _loadCenter];
