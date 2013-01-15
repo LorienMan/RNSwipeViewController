@@ -141,15 +141,19 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
     _centerContainer = [[UIView alloc] initWithFrame:self.view.bounds];
     _centerContainer.clipsToBounds = NO;
     _centerContainer.layer.masksToBounds = NO;
+    [self _loadCenter];
     
     _centerOriginal = _centerContainer.frame;
     
     _rightContainer = [[UIView alloc] initWithFrame:self.view.bounds];
-    
+    [self _loadRight];
+
     _leftContainer = [[UIView alloc] initWithFrame:self.view.bounds];
-    
+    [self _loadLeft];
+
     _bottomContainer = [[UIView alloc] initWithFrame:self.view.bounds];
-    
+    [self _loadBottom];
+
     _centerLastPoint = CGPointZero;
     
     [self _layoutCenterContainer];
@@ -582,28 +586,28 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
 #pragma mark - Adding Views
 
 - (void)_loadCenter {
-    if (self.centerViewController && ! self.centerViewController.view.superview) {
+    if (self.centerViewController && ! self.centerViewController.view.superview && _centerContainer) {
         self.centerViewController.view.frame = _centerContainer.bounds;
         [_centerContainer addSubview:self.centerViewController.view];
     }
 }
 
 - (void)_loadLeft {
-    if (self.leftViewController && ! self.leftViewController.view.superview) {
+    if (self.leftViewController && ! self.leftViewController.view.superview && _leftContainer) {
         self.leftViewController.view.frame = _leftContainer.bounds;
         [_leftContainer addSubview:self.leftViewController.view];
     }
 }
 
 - (void)_loadRight {
-    if (self.rightViewController && ! self.rightViewController.view.superview) {
+    if (self.rightViewController && ! self.rightViewController.view.superview && _rightContainer) {
         self.rightViewController.view.frame = _rightContainer.bounds;
         [_rightContainer addSubview:self.rightViewController.view];
     }
 }
 
 - (void)_loadBottom {
-    if (self.bottomViewController && ! self.bottomViewController.view.superview) {
+    if (self.bottomViewController && ! self.bottomViewController.view.superview && _bottomContainer) {
         self.bottomViewController.view.frame = _bottomContainer.bounds;
         [_bottomContainer addSubview:self.bottomViewController.view];
     }
