@@ -77,7 +77,6 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
     BOOL _isAnimating;
 
     BOOL _fadeEnabled;
-    UIView *overlayView;
 }
 
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
@@ -179,11 +178,9 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
     _panGesture.delegate = self;
     [self.view addGestureRecognizer:_panGesture];
 
-    overlayView = [UIView new];
-    overlayView.backgroundColor = [UIColor clearColor];
     _tapGesture = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(centerViewWasTapped:)];
     _tapGesture.numberOfTapsRequired = 1;
-    [overlayView addGestureRecognizer:_tapGesture];
+    [_centerContainer addGestureRecognizer:_tapGesture];
 
     [self _layoutContainersAnimated:NO duration:0.f];
 }
@@ -389,11 +386,10 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
 // when we are toggled, add a tap gesture to the center view
 - (void)setIsToggled:(BOOL)isToggled {
     if (isToggled) {
-        [self.view addSubview:overlayView];
-        overlayView.frame = _centerContainer.frame;
+        _centerViewController.view.userInteractionEnabled = NO;
     }
     else {
-        [overlayView removeFromSuperview];
+        _centerViewController.view.userInteractionEnabled = YES;
     }
     _isToggled = isToggled;
 }
