@@ -77,6 +77,7 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
     BOOL _isAnimating;
 
     BOOL _fadeEnabled;
+    UIView *overlayView;
 }
 
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
@@ -178,9 +179,11 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
     _panGesture.delegate = self;
     [self.view addGestureRecognizer:_panGesture];
 
+    overlayView = [UIView new];
+    overlayView.backgroundColor = [UIColor clearColor];
     _tapGesture = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(centerViewWasTapped:)];
     _tapGesture.numberOfTapsRequired = 1;
-    [_centerContainer addGestureRecognizer:_tapGesture];
+    [overlayView addGestureRecognizer:_tapGesture];
 
     [self _layoutContainersAnimated:NO duration:0.f];
 }
@@ -349,6 +352,13 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
     if (_visibleState == visibleState)
         return;
 
+    if (visibleState == RNSwipeVisibleCenter) {
+        [overlayView removeFromSuperview];
+    } else {
+        [self.view addSubview:overlayView];
+        overlayView.frame = _centerContainer.frame;
+    }
+
     UIViewController <RNSwipeViewControllerProtocol> *old = self.visibleController;
     _visibleState = visibleState;
     UIViewController <RNSwipeViewControllerProtocol> *new = self.visibleController;
@@ -383,14 +393,7 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
     }
 }
 
-// when we are toggled, add a tap gesture to the center view
 - (void)setIsToggled:(BOOL)isToggled {
-    if (isToggled) {
-        _centerViewController.view.userInteractionEnabled = NO;
-    }
-    else {
-        _centerViewController.view.userInteractionEnabled = YES;
-    }
     _isToggled = isToggled;
 }
 
