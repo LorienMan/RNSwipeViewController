@@ -177,6 +177,10 @@ extern NSString * const RNSwipeViewControllerCenterDidAppear;
  */
 @property (assign, nonatomic) BOOL bounces;
 
+/** Whether you can swipe controllers.
+ */
+@property (assign, nonatomic) BOOL swipeEnabled;
+
 ///---------------------------------------------------------------------------------------
 /// @name Controller Status
 ///---------------------------------------------------------------------------------------

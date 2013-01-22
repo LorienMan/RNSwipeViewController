@@ -131,6 +131,7 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
     _fadeEnabled = YES;
 
     _bounces = YES;
+    _swipeEnabled = YES;
 }
 
 #pragma mark - Viewcontroller
@@ -306,6 +307,11 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
 
         if (self.fadeEnabled)
             [_centerContainer addSubview:_fadeView];
+
+        if (self.visibleState == RNSwipeVisibleCenter) {
+            [self setController:_centerViewController active:YES];
+            [self setController:centerViewController active:NO];
+        }
     }
 }
 
@@ -319,6 +325,11 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
             [self addChildViewController:_rightViewController];
         
         [self _loadRight];
+
+        if (self.visibleState == RNSwipeVisibleRight) {
+            [self setController:_rightViewController active:YES];
+            [self setController:rightViewController active:NO];
+        }
     }
 }
 
@@ -332,6 +343,11 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
             [self addChildViewController:_leftViewController];
         
         [self _loadLeft];
+
+        if (self.visibleState == RNSwipeVisibleLeft) {
+            [self setController:_leftViewController active:YES];
+            [self setController:leftViewController active:NO];
+        }
     }
 }
 
@@ -345,6 +361,11 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
             [self addChildViewController:_bottomViewController];
         
         [self _loadBottom];
+
+        if (self.visibleState == RNSwipeVisibleBottom) {
+            [self setController:_bottomViewController active:YES];
+            [self setController:bottomViewController active:NO];
+        }
     }
 }
 
@@ -725,7 +746,7 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
 #pragma mark - Gesture delegate
 
 - (BOOL)gestureRecognizerShouldBegin:(RNDirectionPanGestureRecognizer *)gestureRecognizer {
-    return YES;
+    return _swipeEnabled;
 }
 
 #pragma mark - Gesture handler
