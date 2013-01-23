@@ -657,8 +657,10 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
 
 - (CGFloat)_filterLeft:(CGFloat)translation {
     CGFloat newLocation = translation + _centerLastPoint.x;
-    newLocation = newLocation >= self.leftVisibleWidth ? self.leftVisibleWidth + (_bounces ? (newLocation - self.leftVisibleWidth) / 10.f : 0) : newLocation;
-    newLocation = newLocation <= -1 * self.rightVisibleWidth ? -1 * self.rightVisibleWidth + (_bounces ? (newLocation + self.rightVisibleWidth) / 10.f : 0) : newLocation;
+    CGFloat leftWidth = self.leftVisibleWidth;
+    CGFloat rightWidth = (self.visibleState == RNSwipeVisibleCenter || self.visibleState == RNSwipeVisibleRight) ? self.rightVisibleWidth : 0;
+    newLocation = newLocation >= leftWidth ? leftWidth + (_bounces ? (newLocation - leftWidth) / 10.f : 0) : newLocation;
+    newLocation = newLocation <= -1 * rightWidth ? -1 * rightWidth + (_bounces ? (newLocation + rightWidth) / 10.f : 0) : newLocation;
     newLocation = !self.canShowRight && newLocation <= 0 ? 0 : newLocation;
     newLocation = !self.canShowLeft && newLocation >= 0 ? 0 : newLocation;
     return newLocation;
@@ -666,8 +668,10 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
 
 - (CGFloat)_filterRight:(CGFloat)translation {
     CGFloat newLocation = translation + _centerLastPoint.x;
-    newLocation = newLocation >= self.leftVisibleWidth ? self.leftVisibleWidth + (_bounces ? (newLocation - self.leftVisibleWidth) / 10.f : 0) : newLocation;
-    newLocation = newLocation <= -1 * self.rightVisibleWidth ? -1 * self.rightVisibleWidth + (_bounces ? (newLocation + self.rightVisibleWidth) / 10.f : 0) : newLocation;
+    CGFloat leftWidth = (self.visibleState == RNSwipeVisibleCenter || self.visibleState == RNSwipeVisibleLeft) ? self.leftVisibleWidth : 0;
+    CGFloat rightWidth = self.rightVisibleWidth;
+    newLocation = newLocation >= leftWidth ? leftWidth + (_bounces ? (newLocation - leftWidth) / 10.f : 0) : newLocation;
+    newLocation = newLocation <= -1 * rightWidth ? -1 * rightWidth + (_bounces ? (newLocation + rightWidth) / 10.f : 0) : newLocation;
     newLocation = !self.canShowRight && newLocation <= 0 ? 0 : newLocation;
     newLocation = !self.canShowLeft && newLocation >= 0 ? 0 : newLocation;
     return newLocation;
