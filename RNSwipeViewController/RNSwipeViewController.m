@@ -73,11 +73,11 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
     CGRect _bottomActive;
     
     CGPoint _centerLastPoint;
-    
-    BOOL _isAnimating;
 
     BOOL _fadeEnabled;
     UIView *overlayView;
+    BOOL nowDragging;
+    BOOL nowAnimating;
 }
 
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
@@ -125,8 +125,6 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
     _canShowBottom = YES;
     _canShowLeft = YES;
     _canShowRight = YES;
-    
-    _isAnimating = NO;
 
     _fadeEnabled = YES;
 
@@ -393,7 +391,7 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
         // remove shadows
         [UIView animateWithDuration:0.1f
                               delay:0
-                            options:kNilOptions
+                            options:UIViewAnimationOptionBeginFromCurrentState
                          animations:^{
                              _leftContainer.layer.shadowOpacity = 0.f;
                              
@@ -558,7 +556,14 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
     
     [self.centerViewController viewWillAppear:animate];
     
-    void (^block)(void) = [self _toResetContainers];
+    void (^block)(void) = ^{
+        nowAnimating = YES;
+        _leftContainer.frame = _leftOriginal;
+        _rightContainer.frame = _rightOriginal;
+        _bottomContainer.frame = _bottomOriginal;
+        _centerContainer.frame = _centerOriginal;
+        _fadeView.alpha = 0.f;
+    };
 
     self.visibleState = RNSwipeVisibleCenter;
 
@@ -566,16 +571,16 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
         _fadeView.hidden = NO;
         [UIView animateWithDuration:duration
                               delay:0
-                            options:kNilOptions
+                            options:UIViewAnimationOptionBeginFromCurrentState
                          animations:block
                          completion:^(BOOL finished){
+                             nowAnimating = NO;
+                             _centerLastPoint = CGPointZero;
                              if (finished) {
-                                  self.isToggled = NO;
+                                 self.isToggled = NO;
                                  
                                  [self.centerViewController viewDidAppear:animate];
-                                 
-                                 _isAnimating = NO;
-                                 _centerLastPoint = CGPointZero;
+
                                  _fadeView.hidden = YES;
                                  _activeContainer = _centerContainer;
                                  
@@ -589,18 +594,9 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
     else {
         _fadeView.hidden = YES;
         block();
+        nowAnimating = NO;
     }
     
-}
-
-- (void (^)(void))_toResetContainers {
-    return ^{
-        _leftContainer.frame = _leftOriginal;
-        _rightContainer.frame = _rightOriginal;
-        _bottomContainer.frame = _bottomOriginal;
-        _centerContainer.frame = _centerOriginal;
-        _fadeView.alpha = 0.f;
-    };
 }
 
 #pragma mark - Adding Views
@@ -696,16 +692,17 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
     
     [UIView animateWithDuration:duration
                           delay:0
-                        options:kNilOptions
+                        options:UIViewAnimationOptionBeginFromCurrentState
                      animations:^{
+                         nowAnimating = YES;
                          _centerContainer.origin = centerPoint;
                          container.origin = containerPoint;
                          _fadeView.alpha = kRNSwipeMaxFadeOpacity;
                      }
                      completion:^(BOOL finished){
+                         nowAnimating = NO;
+                         _centerLastPoint = _centerContainer.origin;
                          if (finished) {
-                             _isAnimating = NO;
-                             _centerLastPoint = _centerContainer.origin;
                              _activeContainer.layer.shouldRasterize = NO;
                              self.isToggled = YES;
                              
@@ -746,7 +743,7 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
 #pragma mark - Gesture delegate
 
 - (BOOL)gestureRecognizerShouldBegin:(RNDirectionPanGestureRecognizer *)gestureRecognizer {
-    return _swipeEnabled;
+    return _swipeEnabled && !nowAnimating;
 }
 
 #pragma mark - Gesture handler
@@ -754,11 +751,10 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
 - (void)_handlePan:(RNDirectionPanGestureRecognizer*)recognizer {
     // beginning a pan gesture
     if (recognizer.state == UIGestureRecognizerStateBegan) {
+        nowDragging = YES;
         [self setController:self.visibleController active:NO];
 
         _activeDirection = recognizer.direction;
-        
-        _isAnimating = YES;
         
         switch (_activeDirection) {
             case RNDirectionLeft: {
@@ -884,6 +880,7 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
 
     // ending a pan gesture
     if (recognizer.state == UIGestureRecognizerStateEnded) {
+        nowDragging = NO;
         RNSwipeVisible old = self.visibleState;
         // seems redundant, but it isn't
         if (_centerContainer.left > self.leftVisibleWidth / 2.f) {
@@ -917,12 +914,17 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
             [self setController:self.visibleController active:YES];
         }
     }
+
+    if (recognizer.state == UIGestureRecognizerStateCancelled) {
+        nowDragging = NO;
+    }
 }
 
 #pragma mark - Tap Gesture
 
 - (void)centerViewWasTapped:(UITapGestureRecognizer*)recognizer {
-    [self _layoutContainersAnimated:YES duration:kRNSwipeDefaultDuration];
+    if (!nowDragging)
+        [self _layoutContainersAnimated:YES duration:kRNSwipeDefaultDuration];
 }
 
 @end
