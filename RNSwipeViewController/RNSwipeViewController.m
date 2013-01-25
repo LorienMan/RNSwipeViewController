@@ -448,12 +448,14 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
 }
 
 - (void)setController:(UIViewController <RNSwipeViewControllerProtocol> *)controller active:(BOOL)active {
-    if (!active && controller.active && [controller respondsToSelector:@selector(controllerBecameInactiveInContainer)]) {
+    if (!active && controller.active) {
         controller.active = NO;
-        [controller controllerBecameInactiveInContainer];
-    } else if (active && !controller.active && [controller respondsToSelector:@selector(controllerBecameActiveInContainer)]) {
+        if ([controller respondsToSelector:@selector(controllerBecameInactiveInContainer)])
+            [controller controllerBecameInactiveInContainer];
+    } else if (active && !controller.active) {
         controller.active = YES;
-        [controller controllerBecameActiveInContainer];
+        if ([controller respondsToSelector:@selector(controllerBecameActiveInContainer)])
+            [controller controllerBecameActiveInContainer];
     }
 }
 
