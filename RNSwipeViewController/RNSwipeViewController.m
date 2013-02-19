@@ -56,6 +56,9 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
     UIView *_rightContainer;
     UIView *_bottomContainer;
     
+    UIImageView *_leftShadowImageView;
+    UIImageView *_rightShadowImageView;
+    
     RNDirection _activeDirection;
     UIView *_activeContainer;
     
@@ -183,8 +186,22 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
     _tapGesture = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(centerViewWasTapped:)];
     _tapGesture.numberOfTapsRequired = 1;
     [overlayView addGestureRecognizer:_tapGesture];
-
+    
+    _leftShadowImageView = [[UIImageView alloc] initWithImage:_leftShadowImage];
+    _leftShadowImageView.contentMode = UIViewContentModeScaleToFill;
+    [_centerContainer addSubview:_leftShadowImageView];
+    
+    _rightShadowImageView = [[UIImageView alloc] initWithImage:_rightShadowImage];
+    _rightShadowImageView.contentMode = UIViewContentModeScaleToFill;
+    [_centerContainer addSubview:_rightShadowImageView];
+    
     [self _layoutContainersAnimated:NO duration:0.f];
+}
+
+- (void)viewWillAppear:(BOOL)animated {
+    [super viewWillAppear:animated];
+        
+    [self _layoutShadowImageViews];
 }
 
 - (void)viewDidAppear:(BOOL)animated {
@@ -295,6 +312,11 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
     
     _bottomActive = _bottomOriginal;
     _bottomActive.origin.y = _centerContainer.height - _bottomActive.size.height;
+}
+
+- (void)_layoutShadowImageViews {
+    _leftShadowImageView.frame = CGRectMake(- _leftShadowImage.size.width, 0, _leftShadowImage.size.width, _centerContainer.size.height);
+    _rightShadowImageView.frame = CGRectMake(_centerContainer.size.width, 0, _leftShadowImage.size.width, _centerContainer.size.height);
 }
 
 #pragma mark - Setters
@@ -463,6 +485,16 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
         if ([controller respondsToSelector:@selector(controllerBecameActiveInContainer)])
             [controller controllerBecameActiveInContainer];
     }
+}
+
+- (void)setLeftShadowImage:(UIImage *)leftShadowImage {
+    _leftShadowImage = leftShadowImage;
+    _leftShadowImageView.image = _leftShadowImage;
+}
+
+- (void)setRightShadowImage:(UIImage *)rightShadowImage {
+    _rightShadowImage = rightShadowImage;
+    _rightShadowImageView.image = _rightShadowImage;
 }
 
 #pragma mark - Getters

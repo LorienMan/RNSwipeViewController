@@ -185,6 +185,11 @@ extern NSString * const RNSwipeViewControllerCenterDidAppear;
  */
 @property (assign, nonatomic) BOOL fixedSideControllers;
 
+/** Shadow images for fixed left and right controllers positions.
+ */
+@property (assign, nonatomic) UIImage *leftShadowImage;
+@property (assign, nonatomic) UIImage *rightShadowImage;
+
 ///---------------------------------------------------------------------------------------
 /// @name Controller Status
 ///---------------------------------------------------------------------------------------
