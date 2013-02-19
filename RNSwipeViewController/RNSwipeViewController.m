@@ -160,10 +160,10 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
     [self _layoutLeftContainer];
     [self _layoutBottomContainer];
     
-    [self.view addSubview:_centerContainer];
     [self.view addSubview:_rightContainer];
     [self.view addSubview:_leftContainer];
     [self.view addSubview:_bottomContainer];
+    [self.view addSubview:_centerContainer];
     
     _fadeView = [[UIView alloc] initWithFrame:_centerContainer.bounds];
     _fadeView.backgroundColor = [UIColor blackColor];
@@ -219,6 +219,9 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
 }
 
 - (void)showLeftWithDuration:(NSTimeInterval)duration {
+    if (self.fixedSideControllers) {
+        [self placeContainerBehindCenterContainer:_leftContainer];
+    }
     if (self.leftViewController) {
         [self _sendCenterToPoint:CGPointMake(self.leftVisibleWidth, 0) panel:_leftContainer toPoint:_leftActive.origin duration:duration];
         self.visibleState = RNSwipeVisibleLeft;
@@ -230,6 +233,9 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
 }
 
 - (void)showRightWithDuration:(NSTimeInterval)duration {
+    if (self.fixedSideControllers) {
+        [self placeContainerBehindCenterContainer:_rightContainer];
+    }
     if (self.rightViewController) {
         [self _sendCenterToPoint:CGPointMake(-1 * self.rightVisibleWidth, 0) panel:_rightContainer toPoint:_rightActive.origin duration:duration];
         self.visibleState = RNSwipeVisibleRight;
@@ -263,7 +269,7 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
     self.rightViewController.view.width = _rightContainer.width;
     
     _rightOriginal = _rightContainer.bounds;
-    _rightOriginal.origin.x = _centerContainer.width;
+    _rightOriginal.origin.x = _fixedSideControllers ? _centerContainer.width - _rightContainer.width : _centerContainer.width;
     
     _rightActive = _rightOriginal;
     _rightActive.origin.x = _centerContainer.width - _rightActive.size.width;
@@ -274,7 +280,7 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
     self.leftViewController.view.width = _leftContainer.width;
     
     _leftOriginal = _leftContainer.bounds;
-    _leftOriginal.origin.x = - _leftOriginal.size.width;
+    _leftOriginal.origin.x = _fixedSideControllers ? 0 : - _leftOriginal.size.width;
     
     _leftActive = _leftOriginal;
     _leftActive.origin = CGPointZero;
@@ -601,6 +607,11 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
     
 }
 
+- (void)placeContainerBehindCenterContainer:(UIView *)container {
+    [self.view bringSubviewToFront:container];
+    [self.view bringSubviewToFront:_centerContainer];
+}
+
 #pragma mark - Adding Views
 
 - (void)_loadCenter {
@@ -830,8 +841,17 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
                 if (self.visibleState != RNSwipeVisibleBottom) {
                     CGFloat left = recognizer.direction == RNDirectionLeft ? [self _filterLeft:translate.x] : [self _filterRight:translate.x];
                     _centerContainer.left = left;
-                    _rightContainer.left = _centerContainer.right;
-                    _leftContainer.right= _centerContainer.left;
+                    if (_fixedSideControllers) {
+                        if (recognizer.direction == RNDirectionLeft && self.visibleState != RNSwipeVisibleLeft) {
+                            [self placeContainerBehindCenterContainer:_rightContainer];
+                        }
+                        if (recognizer.direction == RNDirectionRight && self.visibleState != RNSwipeVisibleRight) {
+                            [self placeContainerBehindCenterContainer:_leftContainer];
+                        }
+                    } else {
+                        _rightContainer.left = _centerContainer.right;
+                        _leftContainer.right= _centerContainer.left;
+                    }
                     doFade = YES;
                 }
             }

@@ -181,6 +181,10 @@ extern NSString * const RNSwipeViewControllerCenterDidAppear;
  */
 @property (assign, nonatomic) BOOL swipeEnabled;
 
+/** Fixed left and right controllers position.
+ */
+@property (assign, nonatomic) BOOL fixedSideControllers;
+
 ///---------------------------------------------------------------------------------------
 /// @name Controller Status
 ///---------------------------------------------------------------------------------------
@@ -251,9 +255,9 @@ extern NSString * const RNSwipeViewControllerCenterDidAppear;
 @property (assign, nonatomic) BOOL canTapOut;
 
 /** Enable/disable fade and shadow.
-
+ 
  Default YES;
-
+ 
  @see canShowLeft
  @see canShowRight
  */
