@@ -190,6 +190,10 @@ extern NSString * const RNSwipeViewControllerCenterDidAppear;
 @property (assign, nonatomic) UIImage *leftShadowImage;
 @property (assign, nonatomic) UIImage *rightShadowImage;
 
+/** Opening side controllers by fast swipe.
+ */
+@property (assign, nonatomic) BOOL easyOpening;
+
 ///---------------------------------------------------------------------------------------
 /// @name Controller Status
 ///---------------------------------------------------------------------------------------

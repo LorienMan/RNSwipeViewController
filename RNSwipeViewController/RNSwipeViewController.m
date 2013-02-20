@@ -41,10 +41,12 @@ NSString * const RNSwipeViewControllerCenterDidAppear = @"com.whoisryannystrom.R
 
 static CGFloat kRNSwipeMaxFadeOpacity = 0.5f;
 static CGFloat kRNSwipeDefaultDuration = 0.3f;
+static CGFloat kRNSwipeMinVelocityToForceShow = 300.f;
 
 @interface RNSwipeViewController ()
 
 @property (assign, nonatomic, readwrite) BOOL isToggled;
+@property (assign, nonatomic) RNDirection activeDirection;
 
 @end
 
@@ -59,7 +61,6 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
     UIImageView *_leftShadowImageView;
     UIImageView *_rightShadowImageView;
     
-    RNDirection _activeDirection;
     UIView *_activeContainer;
     
     RNDirectionPanGestureRecognizer *_panGesture;
@@ -232,7 +233,12 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
 #pragma mark - Public methods
 
 - (void)showLeft {
-    [self showLeftWithDuration:kRNSwipeDefaultDuration];
+    [self showLeftWithRemainingDuration];
+}
+
+- (void)showLeftWithRemainingDuration {
+    CGFloat duration = [self _remainingDuration:abs(_centerContainer.left) threshold:self.leftVisibleWidth];
+    [self showLeftWithDuration:duration];
 }
 
 - (void)showLeftWithDuration:(NSTimeInterval)duration {
@@ -246,7 +252,12 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
 }
 
 - (void)showRight {
-    [self showRightWithDuration:kRNSwipeDefaultDuration];
+    [self showRightWithRemainingDuration];
+}
+
+- (void)showRightWithRemainingDuration {
+    CGFloat duration = [self _remainingDuration:abs(_centerContainer.left) threshold:self.leftVisibleWidth];
+    [self showRightWithDuration:duration];
 }
 
 - (void)showRightWithDuration:(NSTimeInterval)duration {
@@ -260,7 +271,12 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
 }
 
 - (void)showBottom {
-    [self showBottomWithDuration:kRNSwipeDefaultDuration];
+    [self showBottomWithRemainingDuration];
+}
+
+- (void)showBottomWithRemainingDuration {
+    CGFloat duration = [self _remainingDuration:abs(_centerContainer.top) threshold:self.bottomVisibleHeight];
+    [self showBottomWithDuration:duration];    
 }
 
 - (void)showBottomWithDuration:(NSTimeInterval)duration {
@@ -495,6 +511,54 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
 - (void)setRightShadowImage:(UIImage *)rightShadowImage {
     _rightShadowImage = rightShadowImage;
     _rightShadowImageView.image = _rightShadowImage;
+}
+
+- (void)setActiveDirection:(RNDirection)activeDirection {
+    if (_activeDirection == activeDirection) {
+        return;
+    }
+    
+    _activeDirection = activeDirection;
+    
+    switch (_activeDirection) {
+        case RNDirectionLeft: {
+            _activeContainer = _rightContainer;
+            
+            if (self.visibleState == RNSwipeVisibleCenter) {
+                [[NSNotificationCenter defaultCenter] postNotificationName:RNSwipeViewControllerLeftWillAppear object:nil];
+                
+                if (self.swipeDelegate && [self.swipeDelegate respondsToSelector:@selector(swipeController:willShowController:)]) {
+                    [self.swipeDelegate swipeController:self willShowController:self.leftViewController];
+                }
+            }
+        }
+            break;
+        case RNDirectionRight: {
+            _activeContainer = _leftContainer;
+            
+            if (self.visibleState == RNSwipeVisibleCenter) {
+                [[NSNotificationCenter defaultCenter] postNotificationName:RNSwipeViewControllerRightWillAppear object:nil];
+                
+                if (self.swipeDelegate && [self.swipeDelegate respondsToSelector:@selector(swipeController:willShowController:)]) {
+                    [self.swipeDelegate swipeController:self willShowController:self.rightViewController];
+                }
+            }
+        }
+            break;
+        case RNDirectionDown:
+        case RNDirectionUp: {
+            _activeContainer = _bottomContainer;
+            
+            if (self.visibleState == RNSwipeVisibleCenter) {
+                [[NSNotificationCenter defaultCenter] postNotificationName:RNSwipeViewControllerBottomWillAppear object:nil];
+                
+                if (self.swipeDelegate && [self.swipeDelegate respondsToSelector:@selector(swipeController:willShowController:)]) {
+                    [self.swipeDelegate swipeController:self willShowController:self.bottomViewController];
+                }
+            }
+        }
+            break;
+    }
 }
 
 #pragma mark - Getters
@@ -803,47 +867,7 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
         nowDragging = YES;
         [self setController:self.visibleController active:NO];
 
-        _activeDirection = recognizer.direction;
-        
-        switch (_activeDirection) {
-            case RNDirectionLeft: {
-                _activeContainer = _rightContainer;
-                
-                if (self.visibleState == RNSwipeVisibleCenter) {
-                    [[NSNotificationCenter defaultCenter] postNotificationName:RNSwipeViewControllerLeftWillAppear object:nil];
-                    
-                    if (self.swipeDelegate && [self.swipeDelegate respondsToSelector:@selector(swipeController:willShowController:)]) {
-                        [self.swipeDelegate swipeController:self willShowController:self.leftViewController];
-                    }
-                }
-            }
-                break;
-            case RNDirectionRight: {
-                _activeContainer = _leftContainer;
-                
-                if (self.visibleState == RNSwipeVisibleCenter) {
-                    [[NSNotificationCenter defaultCenter] postNotificationName:RNSwipeViewControllerRightWillAppear object:nil];
-                    
-                    if (self.swipeDelegate && [self.swipeDelegate respondsToSelector:@selector(swipeController:willShowController:)]) {
-                        [self.swipeDelegate swipeController:self willShowController:self.rightViewController];
-                    }
-                }
-            }
-                break;
-            case RNDirectionDown:
-            case RNDirectionUp: {
-                _activeContainer = _bottomContainer;
-                
-                if (self.visibleState == RNSwipeVisibleCenter) {
-                    [[NSNotificationCenter defaultCenter] postNotificationName:RNSwipeViewControllerBottomWillAppear object:nil];
-                    
-                    if (self.swipeDelegate && [self.swipeDelegate respondsToSelector:@selector(swipeController:willShowController:)]) {
-                        [self.swipeDelegate swipeController:self willShowController:self.bottomViewController];
-                    }
-                }
-            }
-                break;
-        }
+        self.activeDirection = recognizer.direction;
 
         if (self.fadeEnabled) {
             // add shadow to active layer
@@ -866,6 +890,8 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
     if (recognizer.state == UIGestureRecognizerStateChanged) {
         CGPoint translate = [recognizer translationInView:_centerContainer];
         BOOL doFade = NO;
+        
+        self.activeDirection = recognizer.direction;
         
         switch (_activeDirection) {
             case RNDirectionLeft:
@@ -940,24 +966,41 @@ static CGFloat kRNSwipeDefaultDuration = 0.3f;
     if (recognizer.state == UIGestureRecognizerStateEnded) {
         nowDragging = NO;
         RNSwipeVisible old = self.visibleState;
+        
+        CGFloat gorizontalVelocity = abs([recognizer velocityInView:recognizer.view].x);
+        if (self.easyOpening && gorizontalVelocity > kRNSwipeMinVelocityToForceShow) {
+            switch (self.activeDirection) {
+                case RNDirectionLeft:
+                    if (self.visibleState == RNSwipeVisibleCenter) {
+                        [self showRightWithRemainingDuration];
+                    } else if (self.visibleState == RNSwipeVisibleLeft) {
+                        [self resetView];
+                    }
+                    break;
+                    
+                case RNDirectionRight:
+                    if (self.visibleState == RNSwipeVisibleCenter) {
+                        [self showLeftWithRemainingDuration];
+                    } else if (self.visibleState == RNSwipeVisibleRight) {
+                        [self resetView];
+                    }
+                    break;
+                    
+                case RNDirectionDown:
+                case RNDirectionUp:
+                    // TODO
+                    break;
+            }
+        }
         // seems redundant, but it isn't
-        if (_centerContainer.left > self.leftVisibleWidth / 2.f) {
-            // left will be shown
-            CGFloat duration = [self _remainingDuration:abs(_centerContainer.left) threshold:self.leftVisibleWidth];
-            [self _sendCenterToPoint:CGPointMake(self.leftVisibleWidth, 0) panel:_leftContainer toPoint:_leftActive.origin duration:duration];
-            self.visibleState = RNSwipeVisibleLeft;
+        else if (_centerContainer.left > self.leftVisibleWidth / 2.f) {
+            [self showLeftWithRemainingDuration];
         }
         else if (_centerContainer.left < (self.rightVisibleWidth / -2.f)) {
-            // right will be shown
-            CGFloat duration = [self _remainingDuration:abs(_centerContainer.left) threshold:self.rightVisibleWidth];
-            [self _sendCenterToPoint:CGPointMake(-1 * self.rightVisibleWidth, 0) panel:_rightContainer toPoint:_rightActive.origin duration:duration];
-            self.visibleState = RNSwipeVisibleRight;
+            [self showRightWithRemainingDuration];
         }
         else if (_centerContainer.top < self.bottomVisibleHeight / -2.f) {
-            // bottom will be shown
-            CGFloat duration = [self _remainingDuration:abs(_centerContainer.top) threshold:self.bottomVisibleHeight];
-            [self _sendCenterToPoint:CGPointMake(0, -1 * self.bottomVisibleHeight) panel:_bottomContainer toPoint:_bottomActive.origin duration:duration];
-            self.visibleState = RNSwipeVisibleBottom;
+            [self showBottomWithRemainingDuration];
         }
         else {
             // not enough visible area, clear the scene
