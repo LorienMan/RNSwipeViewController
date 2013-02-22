@@ -40,10 +40,10 @@ NSString * const RNSwipeViewControllerCenterWillAppear = @"com.whoisryannystrom.
 NSString * const RNSwipeViewControllerCenterDidAppear = @"com.whoisryannystrom.RNSwipeViewControllerCenterDidAppear";
 
 static CGFloat kRNSwipeMaxFadeOpacity = 0.5f;
-static CGFloat kRNSwipeDefaultDuration = 0.3f;
+static CGFloat kRNSwipeDefaultDuration = 0.2f;
 static CGFloat kRNSwipeMinVelocityToForceShow = 300.f;
 static CGFloat kRNSwipeInertiaWidth = 10.f;
-static CGFloat kRNSwipeInertiaDuration = 0.2f;
+static CGFloat kRNSwipeInertiaDuration = 0.15f;
 
 @interface RNSwipeViewController ()
 
@@ -1036,17 +1036,17 @@ static CGFloat kRNSwipeInertiaDuration = 0.2f;
             switch (self.activeDirection) {
                 case RNDirectionLeft:
                     if (self.visibleState == RNSwipeVisibleCenter) {
-                        [self showRightWithRemainingDurationAndInertia:YES];
+                        [self showRightWithDuration:(self.leftVisibleWidth + _centerContainer.left) / gorizontalVelocity inertia:YES];
                     } else if (self.visibleState == RNSwipeVisibleLeft) {
-                        [self showCenterWithDuration:kRNSwipeDefaultDuration inertia:YES];
+                        [self showCenterWithDuration:_centerContainer.left / gorizontalVelocity inertia:YES];
                     }
                     break;
                     
                 case RNDirectionRight:
                     if (self.visibleState == RNSwipeVisibleCenter) {
-                        [self showLeftWithRemainingDurationAndInertia:YES];
+                        [self showLeftWithDuration:(self.leftVisibleWidth - _centerContainer.left) / gorizontalVelocity inertia:YES];
                     } else if (self.visibleState == RNSwipeVisibleRight) {
-                        [self showCenterWithDuration:kRNSwipeDefaultDuration inertia:YES];
+                        [self showCenterWithDuration: - _centerContainer.left / gorizontalVelocity inertia:YES];
                     }
                     break;
                     
