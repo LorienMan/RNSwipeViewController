@@ -920,6 +920,27 @@ static CGFloat kRNSwipeInertiaDuration = 0.15f;
 #pragma mark - Gesture delegate
 
 - (BOOL)gestureRecognizerShouldBegin:(RNDirectionPanGestureRecognizer *)gestureRecognizer {
+    switch (gestureRecognizer.direction) {
+        case RNDirectionLeft:
+            if (!self.canShowRight) {
+                return NO;
+            }
+            break;
+        case RNDirectionRight:
+            if (!self.canShowLeft) {
+                return NO;
+            }
+            break;
+        case RNDirectionDown:
+        case RNDirectionUp:
+            if (!self.canShowBottom) {
+                return NO;
+            }
+            break;
+            
+        default:
+            break;
+    }
     return _swipeEnabled && !nowAnimating;
 }
 
