@@ -922,18 +922,18 @@ static CGFloat kRNSwipeInertiaDuration = 0.15f;
 - (BOOL)gestureRecognizerShouldBegin:(RNDirectionPanGestureRecognizer *)gestureRecognizer {
     switch (gestureRecognizer.direction) {
         case RNDirectionLeft:
-            if (!self.canShowRight) {
+            if (!self.canShowRight && self.visibleState == RNSwipeVisibleCenter) {
                 return NO;
             }
             break;
         case RNDirectionRight:
-            if (!self.canShowLeft) {
+            if (!self.canShowLeft && self.visibleState == RNSwipeVisibleCenter) {
                 return NO;
             }
             break;
         case RNDirectionDown:
         case RNDirectionUp:
-            if (!self.canShowBottom) {
+            if (!self.canShowBottom && self.visibleState == RNSwipeVisibleCenter) {
                 return NO;
             }
             break;
