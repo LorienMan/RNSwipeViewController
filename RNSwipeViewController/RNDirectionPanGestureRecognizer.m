@@ -25,8 +25,6 @@
 
 #import "RNDirectionPanGestureRecognizer.h"
 
-int const static kDirectionPanThreshold = 5;
-
 @interface RNDirectionPanGestureRecognizer()
 
 @property (assign, nonatomic, readwrite) RNDirection direction;
@@ -46,22 +44,13 @@ int const static kDirectionPanThreshold = 5;
     CGPoint prevPoint = [[touches anyObject] previousLocationInView:self.view];
     _moveX += prevPoint.x - nowPoint.x;
     _moveY += prevPoint.y - nowPoint.y;
-    if (abs(_moveX) > kDirectionPanThreshold) {
-        if (_moveX > 0) {
-            _direction = RNDirectionLeft;
-        }
-        else {
-            _direction = RNDirectionRight;
-        }
-        _drag = YES;
-    }else if (abs(_moveY) > kDirectionPanThreshold) {
-        if (_moveY > 0) {
-            _direction = RNDirectionUp;
-        }
-        else {
-            _direction = RNDirectionDown;
-        }
+    if (_moveX > 0) {
+        _direction = RNDirectionLeft;
     }
+    else {
+        _direction = RNDirectionRight;
+    }
+    _drag = YES;
 }
 
 - (void)reset {

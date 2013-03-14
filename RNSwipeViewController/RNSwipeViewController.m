@@ -34,12 +34,9 @@ NSString * const RNSwipeViewControllerLeftWillAppear = @"com.whoisryannystrom.RN
 NSString * const RNSwipeViewControllerLeftDidAppear = @"com.whoisryannystrom.RNSwipeViewControllerLeftDidAppear";
 NSString * const RNSwipeViewControllerRightWillAppear = @"com.whoisryannystrom.RNSwipeViewControllerRightWillAppear";
 NSString * const RNSwipeViewControllerRightDidAppear = @"com.whoisryannystrom.RNSwipeViewControllerRightDidAppear";
-NSString * const RNSwipeViewControllerBottomWillAppear = @"com.whoisryannystrom.RNSwipeViewControllerBottomWillAppear";
-NSString * const RNSwipeViewControllerBottomDidAppear = @"com.whoisryannystrom.RNSwipeViewControllerBottomDidAppear";
 NSString * const RNSwipeViewControllerCenterWillAppear = @"com.whoisryannystrom.RNSwipeViewControllerCenterWillAppear";
 NSString * const RNSwipeViewControllerCenterDidAppear = @"com.whoisryannystrom.RNSwipeViewControllerCenterDidAppear";
 
-static CGFloat kRNSwipeMaxFadeOpacity = 0.5f;
 static CGFloat kRNSwipeDefaultDuration = 0.2f;
 static CGFloat kRNSwipeMinVelocityToForceShow = 300.f;
 static CGFloat kRNSwipeInertiaWidth = 10.f;
@@ -53,12 +50,9 @@ static CGFloat kRNSwipeInertiaDuration = 0.15f;
 @end
 
 @implementation RNSwipeViewController {
-    UIView *_fadeView;
-    
     UIView *_centerContainer;
     UIView *_leftContainer;
     UIView *_rightContainer;
-    UIView *_bottomContainer;
     
     UIImageView *_leftShadowImageView;
     UIImageView *_rightShadowImageView;
@@ -70,17 +64,9 @@ static CGFloat kRNSwipeInertiaDuration = 0.15f;
     UITapGestureRecognizer *_tapGesture;
     
     CGRect _centerOriginal;
-
-    CGRect _leftOriginal;
-    CGRect _leftActive;
-    CGRect _rightOriginal;
-    CGRect _rightActive;
-    CGRect _bottomOriginal;
-    CGRect _bottomActive;
     
     CGPoint _centerLastPoint;
 
-    BOOL _fadeEnabled;
     UIView *overlayView;
     BOOL nowDragging;
     BOOL nowAnimating;
@@ -110,29 +96,18 @@ static CGFloat kRNSwipeInertiaDuration = 0.15f;
 }
 
 // initial vars
-- (void)_init {    
+- (void)_init {
     _visibleState = RNSwipeVisibleCenter;
     
     _leftVisibleWidth = 200.f;
     _rightVisibleWidth = 200.f;
-    _bottomVisibleHeight = 300.0f;
     
     _activeContainer = nil;
     
     _centerOriginal = CGRectZero;
-    _leftOriginal = CGRectZero;
-    _rightOriginal = CGRectZero;
-    _bottomOriginal = CGRectZero;
     
-    _leftActive = CGRectZero;
-    _rightActive = CGRectZero;
-    _bottomActive = CGRectZero;
-    
-    _canShowBottom = YES;
     _canShowLeft = YES;
     _canShowRight = YES;
-
-    _fadeEnabled = YES;
 
     _bounces = YES;
     _swipeEnabled = YES;
@@ -156,25 +131,15 @@ static CGFloat kRNSwipeInertiaDuration = 0.15f;
     _leftContainer = [[UIView alloc] initWithFrame:self.view.bounds];
     [self _loadLeft];
 
-    _bottomContainer = [[UIView alloc] initWithFrame:self.view.bounds];
-    [self _loadBottom];
-
     _centerLastPoint = CGPointZero;
     
     [self _layoutCenterContainer];
     [self _layoutRightContainer];
     [self _layoutLeftContainer];
-    [self _layoutBottomContainer];
     
     [self.view addSubview:_rightContainer];
     [self.view addSubview:_leftContainer];
-    [self.view addSubview:_bottomContainer];
     [self.view addSubview:_centerContainer];
-    
-    _fadeView = [[UIView alloc] initWithFrame:_centerContainer.bounds];
-    _fadeView.backgroundColor = [UIColor blackColor];
-    _fadeView.alpha = 0.f;
-    _fadeView.hidden = YES;
     
     self.view.backgroundColor = [UIColor scrollViewTexturedBackgroundColor];
     
@@ -248,11 +213,14 @@ static CGFloat kRNSwipeInertiaDuration = 0.15f;
 }
 
 - (void)showLeftWithDuration:(NSTimeInterval)duration inertia:(BOOL)inertia {
-    if (self.fixedSideControllers) {
-        [self _placeContainerBehindCenterContainer:_leftContainer];
-    }
+    [self _placeContainerBehindCenterContainer:_leftContainer];
     if (self.leftViewController) {
-        [self _sendCenterToPoint:CGPointMake(self.leftVisibleWidth, 0) panel:_leftContainer toPoint:_leftActive.origin duration:duration inertia:inertia];
+        [self.centerViewController viewWillDisappear:YES];
+        [self.leftViewController viewWillAppear:YES];
+        [self _sendCenterToPoint:CGPointMake(self.leftVisibleWidth, 0) duration:duration inertia:inertia completion:^{
+            [self.centerViewController viewDidDisappear:YES];
+            [self.leftViewController viewDidAppear:YES];
+        }];
         self.visibleState = RNSwipeVisibleLeft;
     }
 }
@@ -271,45 +239,25 @@ static CGFloat kRNSwipeInertiaDuration = 0.15f;
 }
 
 - (void)showRightWithDuration:(NSTimeInterval)duration inertia:(BOOL)inertia {
-    if (self.fixedSideControllers) {
-        [self _placeContainerBehindCenterContainer:_rightContainer];
-    }
+    [self _placeContainerBehindCenterContainer:_rightContainer];
     if (self.rightViewController) {
-        [self _sendCenterToPoint:CGPointMake(-1 * self.rightVisibleWidth, 0) panel:_rightContainer toPoint:_rightActive.origin duration:duration inertia:inertia];
+        [self.centerViewController viewWillDisappear:YES];
+        [self.rightViewController viewWillAppear:YES];
+        [self _sendCenterToPoint:CGPointMake(-1 * self.rightVisibleWidth, 0) duration:duration inertia:inertia completion:^{
+            [self.centerViewController viewDidDisappear:YES];
+            [self.rightViewController viewDidAppear:YES];
+        }];
         self.visibleState = RNSwipeVisibleRight;
     }
 }
 
-- (void)showBottom {
-    [self showBottomWithRemainingDurationAndInertia:NO];
-}
-
-- (void)showBottomWithDuration:(NSTimeInterval)duration {
-    [self showBottomWithDuration:duration inertia:NO];
-}
-
-- (void)showBottomWithRemainingDurationAndInertia:(BOOL)inertia {
-    CGFloat duration = [self _remainingDuration:abs(self.bottomVisibleHeight - _centerContainer.top) threshold:self.bottomVisibleHeight];
-    [self showBottomWithDuration:duration inertia:inertia];
-}
-
-- (void)showBottomWithDuration:(NSTimeInterval)duration inertia:(BOOL)inertia {
-    if (self.bottomViewController) {
-        [self _sendCenterToPoint:CGPointMake(0, -1 * self.bottomVisibleHeight) panel:_bottomContainer toPoint:_bottomActive.origin duration:duration inertia:inertia];
-        self.visibleState = RNSwipeVisibleBottom;
-    }
-}
-
 - (void)showCenterWithDuration:(NSTimeInterval)duration inertia:(BOOL)inertia {
-    CGPoint panelPoint;
-    if (_activeContainer == _leftContainer) {
-        panelPoint = _leftOriginal.origin;
-    } else if (_activeContainer == _rightContainer) {
-        panelPoint = _rightOriginal.origin;
-    } else if (_activeContainer == _bottomContainer) {
-        panelPoint = _bottomOriginal.origin;
-    }
-    [self _sendCenterToPoint:CGPointZero panel:_activeContainer toPoint:panelPoint duration:duration inertia:inertia];
+    [self.visibleController viewWillDisappear:YES];
+    [self.centerViewController viewWillAppear:YES];
+    [self _sendCenterToPoint:CGPointZero duration:duration inertia:inertia completion:^{
+        [self.visibleController viewDidDisappear:YES];
+        [self.centerViewController viewDidAppear:YES];
+    }];
     self.visibleState = RNSwipeVisibleCenter;
 }
 
@@ -325,45 +273,11 @@ static CGFloat kRNSwipeInertiaDuration = 0.15f;
 }
 
 - (void)_layoutRightContainer {
-    if (self.fixedSideControllers) {
-        self.rightViewController.view.frame = self.view.bounds;
-    }
-    else {
-        _rightContainer.width = _rightVisibleWidth;
-        self.rightViewController.view.width = _rightContainer.width;
-    }
-        
-    _rightOriginal = _rightContainer.bounds;
-    _rightOriginal.origin.x = _fixedSideControllers ? 0 : _centerContainer.width;
-    
-    _rightActive = _rightOriginal;
-    _rightActive.origin.x = _centerContainer.width - _rightActive.size.width;
+    self.rightViewController.view.frame = self.view.bounds;
 }
 
 - (void)_layoutLeftContainer {
-    if (self.fixedSideControllers) {
-        self.leftViewController.view.frame = self.view.bounds;
-    } else {
-        _leftContainer.width = self.leftVisibleWidth;
-        self.leftViewController.view.width = _leftContainer.width;
-    }
-        
-    _leftOriginal = _leftContainer.bounds;
-    _leftOriginal.origin.x = _fixedSideControllers ? 0 : - _leftOriginal.size.width;
-    
-    _leftActive = _leftOriginal;
-    _leftActive.origin = CGPointZero;
-}
-
-- (void)_layoutBottomContainer {
-    _bottomContainer.height = self.bottomVisibleHeight;
-    self.bottomViewController.view.height = _bottomContainer.height;
-    
-    _bottomOriginal = _bottomContainer.bounds;
-    _bottomOriginal.origin.y = _centerContainer.height;
-    
-    _bottomActive = _bottomOriginal;
-    _bottomActive.origin.y = _centerContainer.height - _bottomActive.size.height;
+    self.leftViewController.view.frame = self.view.bounds;
 }
 
 - (void)_layoutShadowImageViews {
@@ -382,9 +296,6 @@ static CGFloat kRNSwipeInertiaDuration = 0.15f;
             [self addChildViewController:_centerViewController];
         
         [self _loadCenter];
-
-        if (self.fadeEnabled)
-            [_centerContainer addSubview:_fadeView];
 
         if (self.visibleState == RNSwipeVisibleCenter) {
             [self setController:_centerViewController active:YES];
@@ -429,24 +340,6 @@ static CGFloat kRNSwipeInertiaDuration = 0.15f;
     }
 }
 
-- (void)setBottomViewController:(UIViewController <RNSwipeViewControllerProtocol> *)bottomViewController {
-    if (_bottomViewController != bottomViewController) {
-        [_bottomViewController.view removeFromSuperview];
-        bottomViewController.view.frame = _bottomContainer.bounds;
-        _bottomViewController = bottomViewController;
-
-        if (_bottomViewController)
-            [self addChildViewController:_bottomViewController];
-        
-        [self _loadBottom];
-
-        if (self.visibleState == RNSwipeVisibleBottom) {
-            [self setController:_bottomViewController active:YES];
-            [self setController:bottomViewController active:NO];
-        }
-    }
-}
-
 - (void)setVisibleState:(RNSwipeVisible)visibleState {
     if (_visibleState == visibleState)
         return;
@@ -465,30 +358,6 @@ static CGFloat kRNSwipeInertiaDuration = 0.15f;
     if (self.onScreen) {
         [self setController:old active:NO];
         [self setController:new active:YES];
-    }
-
-    if (visibleState == RNSwipeVisibleCenter) {
-        // remove shadows
-        [UIView animateWithDuration:0.1f
-                              delay:0
-                            options:UIViewAnimationOptionBeginFromCurrentState
-                         animations:^{
-                             _leftContainer.layer.shadowOpacity = 0.f;
-                             
-                             _rightContainer.layer.shadowOpacity = 0.f;
-                             
-                             _bottomContainer.layer.shadowOpacity = 0.f;
-                         }
-                         completion:^(BOOL finished) {
-                             _leftContainer.layer.shadowRadius = 0.f;
-                             _leftContainer.layer.shadowColor = nil;
-                             
-                             _rightContainer.layer.shadowRadius = 0.f;
-                             _rightContainer.layer.shadowColor = nil;
-                             
-                             _bottomContainer.layer.shadowRadius = 0.f;
-                             _bottomContainer.layer.shadowColor = nil;
-                         }];
     }
 }
 
@@ -510,21 +379,6 @@ static CGFloat kRNSwipeInertiaDuration = 0.15f;
         [self _layoutRightContainer];
         [self _layoutContainersAnimated:NO duration:0.f];
     }
-}
-
-- (void)setBottomVisibleHeight:(CGFloat)bottomVisibleHeight {
-    if (_bottomVisibleHeight != bottomVisibleHeight) {
-        _bottomVisibleHeight = bottomVisibleHeight;
-        [self _layoutBottomContainer];
-        [self _layoutContainersAnimated:NO duration:0.f];
-    }
-}
-
-- (void)setFadeEnabled:(BOOL)fadeEnabled {
-    _fadeEnabled = fadeEnabled;
-
-    fadeEnabled ? [_centerContainer addSubview:_fadeView] : [_fadeView removeFromSuperview];
-    [self setVisibleState:_visibleState];
 }
 
 - (void)setController:(UIViewController <RNSwipeViewControllerProtocol> *)controller active:(BOOL)active {
@@ -550,50 +404,24 @@ static CGFloat kRNSwipeInertiaDuration = 0.15f;
 }
 
 - (void)setActiveDirection:(RNDirection)activeDirection {
-    if (_activeDirection == activeDirection) {
+    if (_activeDirection == activeDirection)
         return;
-    }
-    
+        
     _activeDirection = activeDirection;
     
-    switch (_activeDirection) {
-        case RNDirectionLeft: {
-            _activeContainer = _rightContainer;
-            
-            if (self.visibleState == RNSwipeVisibleCenter) {
-                [[NSNotificationCenter defaultCenter] postNotificationName:RNSwipeViewControllerLeftWillAppear object:nil];
-                
-                if (self.swipeDelegate && [self.swipeDelegate respondsToSelector:@selector(swipeController:willShowController:)]) {
-                    [self.swipeDelegate swipeController:self willShowController:self.leftViewController];
-                }
-            }
+    if (_activeDirection == RNDirectionLeft && self.visibleState == RNSwipeVisibleCenter) {
+        [[NSNotificationCenter defaultCenter] postNotificationName:RNSwipeViewControllerLeftWillAppear object:nil];
+        
+        if (self.swipeDelegate && [self.swipeDelegate respondsToSelector:@selector(swipeController:willShowController:)]) {
+            [self.swipeDelegate swipeController:self willShowController:self.leftViewController];
         }
-            break;
-        case RNDirectionRight: {
-            _activeContainer = _leftContainer;
-            
-            if (self.visibleState == RNSwipeVisibleCenter) {
-                [[NSNotificationCenter defaultCenter] postNotificationName:RNSwipeViewControllerRightWillAppear object:nil];
-                
-                if (self.swipeDelegate && [self.swipeDelegate respondsToSelector:@selector(swipeController:willShowController:)]) {
-                    [self.swipeDelegate swipeController:self willShowController:self.rightViewController];
-                }
-            }
+    }
+    else if (_activeDirection == RNDirectionRight && self.visibleState == RNSwipeVisibleCenter) {
+        [[NSNotificationCenter defaultCenter] postNotificationName:RNSwipeViewControllerRightWillAppear object:nil];
+        
+        if (self.swipeDelegate && [self.swipeDelegate respondsToSelector:@selector(swipeController:willShowController:)]) {
+            [self.swipeDelegate swipeController:self willShowController:self.rightViewController];
         }
-            break;
-        case RNDirectionDown:
-        case RNDirectionUp: {
-            _activeContainer = _bottomContainer;
-            
-            if (self.visibleState == RNSwipeVisibleCenter) {
-                [[NSNotificationCenter defaultCenter] postNotificationName:RNSwipeViewControllerBottomWillAppear object:nil];
-                
-                if (self.swipeDelegate && [self.swipeDelegate respondsToSelector:@selector(swipeController:willShowController:)]) {
-                    [self.swipeDelegate swipeController:self willShowController:self.bottomViewController];
-                }
-            }
-        }
-            break;
     }
 }
 
@@ -602,15 +430,7 @@ static CGFloat kRNSwipeInertiaDuration = 0.15f;
 - (UIViewController*)visibleController {
     if (self.visibleState == RNSwipeVisibleLeft) return self.leftViewController;
     if (self.visibleState == RNSwipeVisibleRight) return self.rightViewController;
-    if (self.visibleState == RNSwipeVisibleBottom) return self.bottomViewController;
     return self.centerViewController;
-}
-
-- (BOOL)canShowBottom {
-    if (! self.bottomViewController) {
-        return NO;
-    }
-    return _canShowBottom;
 }
 
 - (BOOL)canShowLeft {
@@ -627,10 +447,6 @@ static CGFloat kRNSwipeInertiaDuration = 0.15f;
     return _canShowRight;
 }
 
-- (BOOL)fadeEnabled {
-    return _fadeEnabled;
-}
-
 #pragma mark - Private Helpers
 
 - (void)_resizeForOrienation:(UIInterfaceOrientation)orientation {
@@ -644,8 +460,6 @@ static CGFloat kRNSwipeInertiaDuration = 0.15f;
     [_centerContainer layoutSubviews];
     
     [self _layoutCenterContainer];
-    
-    _fadeView.frame = centerFrame;
     
     self.view.frame = centerFrame;
     
@@ -673,18 +487,6 @@ static CGFloat kRNSwipeInertiaDuration = 0.15f;
         [self _layoutRightContainer];
     }
     
-    if (self.bottomViewController) {
-        CGRect bottomFrame = _bottomContainer.frame;
-        bottomFrame.size.height = self.bottomVisibleHeight;
-        bottomFrame.size.width = sizeOriented.width;
-        _bottomContainer.frame = bottomFrame;
-        bottomFrame.origin = CGPointZero;
-        self.bottomViewController.view.frame = bottomFrame;
-        [_bottomContainer layoutSubviews];
-        
-        [self _layoutBottomContainer];
-    }
-    
     [self resetView];
 }
 
@@ -698,17 +500,12 @@ static CGFloat kRNSwipeInertiaDuration = 0.15f;
     
     void (^block)(void) = ^{
         nowAnimating = YES;
-        _leftContainer.frame = _leftOriginal;
-        _rightContainer.frame = _rightOriginal;
-        _bottomContainer.frame = _bottomOriginal;
         _centerContainer.frame = _centerOriginal;
-        _fadeView.alpha = 0.f;
     };
 
     self.visibleState = RNSwipeVisibleCenter;
 
     if (animate) {
-        _fadeView.hidden = NO;
         [UIView animateWithDuration:duration
                               delay:0
                             options:UIViewAnimationOptionBeginFromCurrentState
@@ -721,7 +518,6 @@ static CGFloat kRNSwipeInertiaDuration = 0.15f;
                                  
                                  [self.centerViewController viewDidAppear:animate];
 
-                                 _fadeView.hidden = YES;
                                  _activeContainer = _centerContainer;
                                  
                                  [[NSNotificationCenter defaultCenter] postNotificationName:RNSwipeViewControllerCenterDidAppear object:nil];
@@ -732,7 +528,6 @@ static CGFloat kRNSwipeInertiaDuration = 0.15f;
                          }];
     }
     else {
-        _fadeView.hidden = YES;
         block();
         nowAnimating = NO;
     }
@@ -742,7 +537,6 @@ static CGFloat kRNSwipeInertiaDuration = 0.15f;
 - (void)_placeContainerBehindCenterContainer:(UIView *)container {
     _rightContainer.hidden = container != _rightContainer;
     _leftContainer.hidden = container != _leftContainer;
-    _bottomContainer.hidden = container != _bottomContainer;
 }
 
 #pragma mark - Adding Views
@@ -768,13 +562,6 @@ static CGFloat kRNSwipeInertiaDuration = 0.15f;
     }
 }
 
-- (void)_loadBottom {
-    if (self.bottomViewController && ! self.bottomViewController.view.superview && _bottomContainer) {
-        self.bottomViewController.view.frame = _bottomContainer.bounds;
-        [_bottomContainer addSubview:self.bottomViewController.view];
-    }
-}
-
 #pragma mark - Animations
 
 - (CGFloat)_remainingDuration:(CGFloat)position threshold:(CGFloat)threshold {
@@ -788,17 +575,6 @@ static CGFloat kRNSwipeInertiaDuration = 0.15f;
         return suggestedDuration;
     }
     return maxDuration;
-}
-
-- (CGFloat)_filterTop:(CGFloat)translation {
-    if (! self.canShowBottom) {
-        return 0.f;
-    }
-    
-    if (_centerContainer.top >= 0.f) {
-        return 0.f;
-    }
-    return translation + _centerLastPoint.y;
 }
 
 - (CGFloat)_filterLeft:(CGFloat)translation {
@@ -823,23 +599,7 @@ static CGFloat kRNSwipeInertiaDuration = 0.15f;
     return newLocation;
 }
 
-- (CGFloat)_filterBottom:(CGFloat)translation {
-    if (! self.canShowBottom) {
-        return 0.f;
-    }
-    
-    if (fabsf(_centerContainer.top) >= self.bottomVisibleHeight) {
-        return self.bottomVisibleHeight * -1;
-    }
-    return translation + _centerLastPoint.y;
-}
-
-- (void)_sendCenterToPoint:(CGPoint)centerPoint panel:(UIView*)container toPoint:(CGPoint)containerPoint duration:(NSTimeInterval)duration inertia:(BOOL)inertia {
-    _fadeView.hidden = NO;
-    
-    [self.visibleController viewWillAppear:YES];
-    [self.centerViewController viewWillDisappear:YES];
-    
+- (void)_sendCenterToPoint:(CGPoint)centerPoint duration:(NSTimeInterval)duration inertia:(BOOL)inertia completion:(void (^)())completionBlock {
     void (^completion)(BOOL) = ^(BOOL finished){
         nowAnimating = NO;
         _centerLastPoint = _centerContainer.origin;
@@ -864,10 +624,6 @@ static CGFloat kRNSwipeInertiaDuration = 0.15f;
                 notificationKey = RNSwipeViewControllerRightDidAppear;
                 controller = self.rightViewController;
             }
-            else if (_activeContainer == _bottomContainer) {
-                notificationKey = RNSwipeViewControllerBottomDidAppear;
-                controller = self.bottomViewController;
-            }
             if (notificationKey) {
                 [[NSNotificationCenter defaultCenter] postNotificationName:notificationKey object:nil];
             }
@@ -877,6 +633,9 @@ static CGFloat kRNSwipeInertiaDuration = 0.15f;
                 [self.swipeDelegate swipeController:self didShowController:controller];
             }
         }
+        
+        if (completionBlock)
+            completionBlock();
     };
     
     CGPoint centerDestination = centerPoint;
@@ -895,8 +654,6 @@ static CGFloat kRNSwipeInertiaDuration = 0.15f;
                      animations:^{
                          nowAnimating = YES;
                          _centerContainer.origin = centerDestination;
-                         container.origin = containerPoint;
-                         _fadeView.alpha = kRNSwipeMaxFadeOpacity;
                      }
                      completion:^(BOOL finished){
                          if (inertia) {
@@ -906,8 +663,6 @@ static CGFloat kRNSwipeInertiaDuration = 0.15f;
                                               animations:^{
                                                   nowAnimating = YES;
                                                   _centerContainer.origin = centerPoint;
-                                                  container.origin = containerPoint;
-                                                  _fadeView.alpha = kRNSwipeMaxFadeOpacity;
                                               }
                                               completion:completion];
                          } else {
@@ -916,32 +671,40 @@ static CGFloat kRNSwipeInertiaDuration = 0.15f;
                      }];
 }
 
+- (void)fastOpenWithVelocity:(CGFloat)velocity {
+    RNDirection direction = velocity > 0 ? RNDirectionRight : RNDirectionLeft;
+    switch (direction) {
+        case RNDirectionLeft:
+            if (self.visibleState == RNSwipeVisibleCenter) {
+                [self showRightWithDuration:(self.leftVisibleWidth + _centerContainer.left) / velocity inertia:YES];
+            } else if (self.visibleState == RNSwipeVisibleLeft) {
+                [self showCenterWithDuration:_centerContainer.left / velocity inertia:YES];
+            }
+            break;
+            
+        case RNDirectionRight:
+            if (self.visibleState == RNSwipeVisibleCenter) {
+                [self showLeftWithDuration:(self.leftVisibleWidth - _centerContainer.left) / velocity inertia:YES];
+            } else if (self.visibleState == RNSwipeVisibleRight) {
+                [self showCenterWithDuration: - _centerContainer.left / velocity inertia:YES];
+            }
+            break;
+    }
+}
+
 
 #pragma mark - Gesture delegate
 
 - (BOOL)gestureRecognizerShouldBegin:(RNDirectionPanGestureRecognizer *)gestureRecognizer {
-    switch (gestureRecognizer.direction) {
-        case RNDirectionLeft:
-            if (!self.canShowRight && self.visibleState == RNSwipeVisibleCenter) {
-                return NO;
-            }
-            break;
-        case RNDirectionRight:
-            if (!self.canShowLeft && self.visibleState == RNSwipeVisibleCenter) {
-                return NO;
-            }
-            break;
-        case RNDirectionDown:
-        case RNDirectionUp:
-            if (!self.canShowBottom && self.visibleState == RNSwipeVisibleCenter) {
-                return NO;
-            }
-            break;
-            
-        default:
-            break;
+    BOOL shouldBegin = _swipeEnabled && !nowAnimating;
+    
+    CGFloat gorizontalVelocity = [gestureRecognizer velocityInView:gestureRecognizer.view].x;
+    if (shouldBegin && self.easyOpening && abs(gorizontalVelocity) > kRNSwipeMinVelocityToForceShow) {
+        [self fastOpenWithVelocity:gorizontalVelocity];
+        shouldBegin = NO;
     }
-    return _swipeEnabled && !nowAnimating;
+    
+    return shouldBegin;
 }
 
 #pragma mark - Gesture handler
@@ -953,97 +716,22 @@ static CGFloat kRNSwipeInertiaDuration = 0.15f;
         [self setController:self.visibleController active:NO];
 
         self.activeDirection = recognizer.direction;
-
-        if (self.fadeEnabled) {
-            // add shadow to active layer
-            // could already be there if layer was visible
-            _activeContainer.layer.shadowColor = [UIColor blackColor].CGColor;
-            _activeContainer.layer.shadowRadius = 5.f;
-            _activeContainer.layer.shadowOffset = CGSizeZero;
-            _activeContainer.layer.shadowOpacity = 0.5f;
-
-            // turn ON rasterizing for scrolling performance
-            _activeContainer.layer.shouldRasterize = YES;
-
-            // ensure fadeing view is visible
-            _fadeView.hidden = NO;
-        }
-
     }
     
     // changing a pan gesture
     if (recognizer.state == UIGestureRecognizerStateChanged) {
         CGPoint translate = [recognizer translationInView:_centerContainer];
-        BOOL doFade = NO;
         
         self.activeDirection = recognizer.direction;
         
-        switch (_activeDirection) {
-            case RNDirectionLeft:
-            case RNDirectionRight: {
-                if (self.visibleState != RNSwipeVisibleBottom) {
-                    CGFloat left = recognizer.direction == RNDirectionLeft ? [self _filterLeft:translate.x] : [self _filterRight:translate.x];
-                    _centerContainer.left = left;
-                    if (_fixedSideControllers) {
-                        if (recognizer.direction == RNDirectionLeft && self.visibleState != RNSwipeVisibleLeft) {
-                            [self _placeContainerBehindCenterContainer:_rightContainer];
-                        }
-                        if (recognizer.direction == RNDirectionRight && self.visibleState != RNSwipeVisibleRight) {
-                            [self _placeContainerBehindCenterContainer:_leftContainer];
-                        }
-                    } else {
-                        _rightContainer.left = _centerContainer.right;
-                        _leftContainer.right= _centerContainer.left;
-                    }
-                    doFade = YES;
-                }
-            }
-                break;
-            case RNDirectionDown: {
-                if (self.visibleState != RNSwipeVisibleLeft && self.visibleState != RNSwipeVisibleRight) {
-                    _centerContainer.top = [self _filterTop:translate.y];
-                    _activeContainer.top = _bottomOriginal.origin.y + [self _filterTop:translate.y];
-                    doFade = YES;
-                }
-            }
-                break;
-            case RNDirectionUp: {
-                if (self.visibleState != RNSwipeVisibleLeft && self.visibleState != RNSwipeVisibleRight) {
-                    _centerContainer.top = [self _filterBottom:translate.y];
-                    _activeContainer.top = _bottomOriginal.origin.y + [self _filterBottom:translate.y];
-                    doFade = YES;
-                }
-            }
-                break;
+        CGFloat left = recognizer.direction == RNDirectionLeft ? [self _filterLeft:translate.x] : [self _filterRight:translate.x];
+        _centerContainer.left = left;
+        
+        if (recognizer.direction == RNDirectionLeft && self.visibleState != RNSwipeVisibleLeft) {
+            [self _placeContainerBehindCenterContainer:_rightContainer];
         }
-
-        // calculate the amount of fading
-        // max static var defined as kRNSwipeMaxFadeOpacity in top of file
-        if (doFade && self.fadeEnabled) {
-            CGFloat position = 0.f;
-            CGFloat threshold = 0.f;
-            switch (_activeDirection) {
-                case RNDirectionLeft: {
-                    position = abs(_centerContainer.left);
-                    threshold = self.rightVisibleWidth;
-                }
-                    break;
-                case RNDirectionRight: {
-                    position = abs(_centerContainer.left);
-                    threshold = self.leftVisibleWidth;
-                }
-                    break;
-                case RNDirectionDown:
-                case RNDirectionUp: {
-                    position = abs(_centerContainer.top);
-                    threshold = self.bottomVisibleHeight;
-                }
-                    break;
-            }
-            // max value is kRNSwipeMaxFadeOpacity, caluclation isn't perfect but i dont care
-            CGFloat alpha = kRNSwipeMaxFadeOpacity * (position / (CGFloat)threshold);
-            if (alpha > kRNSwipeMaxFadeOpacity) alpha = kRNSwipeMaxFadeOpacity;
-            _fadeView.alpha = alpha;
+        if (recognizer.direction == RNDirectionRight && self.visibleState != RNSwipeVisibleRight) {
+            [self _placeContainerBehindCenterContainer:_leftContainer];
         }
     }
 
@@ -1052,30 +740,9 @@ static CGFloat kRNSwipeInertiaDuration = 0.15f;
         nowDragging = NO;
         RNSwipeVisible old = self.visibleState;
         
-        CGFloat gorizontalVelocity = abs([recognizer velocityInView:recognizer.view].x);
-        if (self.easyOpening && gorizontalVelocity > kRNSwipeMinVelocityToForceShow) {
-            switch (self.activeDirection) {
-                case RNDirectionLeft:
-                    if (self.visibleState == RNSwipeVisibleCenter) {
-                        [self showRightWithDuration:(self.leftVisibleWidth + _centerContainer.left) / gorizontalVelocity inertia:YES];
-                    } else if (self.visibleState == RNSwipeVisibleLeft) {
-                        [self showCenterWithDuration:_centerContainer.left / gorizontalVelocity inertia:YES];
-                    }
-                    break;
-                    
-                case RNDirectionRight:
-                    if (self.visibleState == RNSwipeVisibleCenter) {
-                        [self showLeftWithDuration:(self.leftVisibleWidth - _centerContainer.left) / gorizontalVelocity inertia:YES];
-                    } else if (self.visibleState == RNSwipeVisibleRight) {
-                        [self showCenterWithDuration: - _centerContainer.left / gorizontalVelocity inertia:YES];
-                    }
-                    break;
-                    
-                case RNDirectionDown:
-                case RNDirectionUp:
-                    // TODO
-                    break;
-            }
+        CGFloat gorizontalVelocity = [recognizer velocityInView:recognizer.view].x;
+        if (self.easyOpening && abs(gorizontalVelocity) > kRNSwipeMinVelocityToForceShow) {
+            [self fastOpenWithVelocity:gorizontalVelocity];
         }
         // seems redundant, but it isn't
         else if (_centerContainer.left > self.leftVisibleWidth / 2.f) {
@@ -1084,14 +751,9 @@ static CGFloat kRNSwipeInertiaDuration = 0.15f;
         else if (_centerContainer.left < (self.rightVisibleWidth / -2.f)) {
             [self showRightWithRemainingDurationAndInertia:NO];
         }
-        else if (_centerContainer.top < self.bottomVisibleHeight / -2.f) {
-            [self showBottomWithRemainingDurationAndInertia:NO];
-        }
         else {
             // not enough visible area, clear the scene
-            CGFloat position = _centerContainer.left == 0.f ? abs(_centerContainer.top) : abs(_centerContainer.left);
-            CGFloat threshold = _centerContainer.left == 0.f ? self.bottomVisibleHeight : self.leftVisibleWidth;
-            CGFloat duration = [self _remainingDuration:position threshold:threshold];
+            CGFloat duration = [self _remainingDuration:abs(_centerContainer.left) threshold:self.leftVisibleWidth];
             [self _layoutContainersAnimated:YES duration:duration];
             self.visibleState = RNSwipeVisibleCenter;
         }

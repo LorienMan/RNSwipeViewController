@@ -27,7 +27,6 @@ typedef enum : u_int16_t {
     RNSwipeVisibleLeft = 0x0,
     RNSwipeVisibleCenter = 0x1,
     RNSwipeVisibleRight = 0x2,
-    RNSwipeVisibleBottom = 0x3
 } RNSwipeVisible;
 
 /** Notification posted when controller will show the left view controller */
@@ -41,12 +40,6 @@ extern NSString * const RNSwipeViewControllerRightWillAppear;
 
 /** Notification posted when controller did show the right view controller */
 extern NSString * const RNSwipeViewControllerRightDidAppear;
-
-/** Notification posted when controller will show the bottom view controller */
-extern NSString * const RNSwipeViewControllerBottomWillAppear;
-
-/** Notification posted when controller did show the bottom view controller */
-extern NSString * const RNSwipeViewControllerBottomDidAppear;
 
 /** Notification posted when controller will show the center view controller */
 extern NSString * const RNSwipeViewControllerCenterWillAppear;
@@ -96,19 +89,6 @@ extern NSString * const RNSwipeViewControllerCenterDidAppear;
  */
 - (void)showRightWithDuration:(NSTimeInterval)duration;
 
-/** Show the bottom view controller
- 
- @see resetView
- */
-- (void)showBottom;
-
-/** Show the bottom view controller with a user-defined duration.
- 
- @param duration The duration of the animation.
- @see resetView
- */
-- (void)showBottomWithDuration:(NSTimeInterval)duration;
-
 /** Hide all view controllers and show the center controller.
  
  @see resetView
@@ -132,12 +112,6 @@ extern NSString * const RNSwipeViewControllerCenterDidAppear;
  @see visibleController
  */
 @property (strong, nonatomic) UIViewController <RNSwipeViewControllerProtocol> *leftViewController;
-
-/** The bottom view controller that can be displayed with an up-swipe.
- 
- @see visibleController
- */
-@property (strong, nonatomic) UIViewController <RNSwipeViewControllerProtocol> *bottomViewController;
 
 /** The right view controller that can be displayed with a left-swipe.
  
@@ -165,14 +139,6 @@ extern NSString * const RNSwipeViewControllerCenterDidAppear;
  */
 @property (assign, nonatomic) CGFloat rightVisibleWidth;
 
-/** The width in points of the left controller.
- 
- This value should be less than the device's visible width.
- 
- @see bottomViewController
- */
-@property (assign, nonatomic) CGFloat bottomVisibleHeight;
-
 /** Whether you can bounce the controllers.
  */
 @property (assign, nonatomic) BOOL bounces;
@@ -180,10 +146,6 @@ extern NSString * const RNSwipeViewControllerCenterDidAppear;
 /** Whether you can swipe controllers.
  */
 @property (assign, nonatomic) BOOL swipeEnabled;
-
-/** Fixed left and right controllers position.
- */
-@property (assign, nonatomic) BOOL fixedSideControllers;
 
 /** Shadow images for fixed left and right controllers positions.
  */
@@ -251,26 +213,8 @@ extern NSString * const RNSwipeViewControllerCenterDidAppear;
 /** Enable/disable the bottom view controller.
  
  Default YES;
- 
- @see canShowLeft
- @see canShowRight
- */
-@property (assign, nonatomic) BOOL canShowBottom;
-
-/** Enable/disable the bottom view controller.
- 
- Default YES;
  */
 @property (assign, nonatomic) BOOL canTapOut;
-
-/** Enable/disable fade and shadow.
- 
- Default YES;
- 
- @see canShowLeft
- @see canShowRight
- */
-@property (assign, nonatomic) BOOL fadeEnabled;
 
 ///---------------------------------------------------------------------------------------
 /// @name Controller Delegates
