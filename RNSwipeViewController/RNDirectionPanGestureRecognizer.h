@@ -27,6 +27,8 @@
 #import <UIKit/UIGestureRecognizerSubclass.h>
 
 typedef enum : u_int16_t {
+    RNDirectionUp = 0x0,
+    RNDirectionDown = 0x1,
     RNDirectionLeft = 0x2,
     RNDirectionRight = 0x3
 } RNDirection;
