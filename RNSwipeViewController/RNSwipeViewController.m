@@ -60,6 +60,8 @@ static CGFloat kRNSwipeInertiaDuration = 0.15f;
     UIView *_activeContainer;
     
     RNDirectionPanGestureRecognizer *_panGesture;
+    UISwipeGestureRecognizer *_leftSwipeGesture;
+    UISwipeGestureRecognizer *_rightSwipeGesture;
     
     UITapGestureRecognizer *_tapGesture;
     
@@ -70,6 +72,8 @@ static CGFloat kRNSwipeInertiaDuration = 0.15f;
     UIView *overlayView;
     BOOL nowDragging;
     BOOL nowAnimating;
+    
+    BOOL handleGesture;
 }
 
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
@@ -154,6 +158,16 @@ static CGFloat kRNSwipeInertiaDuration = 0.15f;
     _tapGesture = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(centerViewWasTapped:)];
     _tapGesture.numberOfTapsRequired = 1;
     [overlayView addGestureRecognizer:_tapGesture];
+    
+    _leftSwipeGesture = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(_handleSwipe:)];
+    _leftSwipeGesture.direction = UISwipeGestureRecognizerDirectionLeft;
+    _leftSwipeGesture.delegate = self;
+    [self.view addGestureRecognizer:_leftSwipeGesture];
+    
+    _rightSwipeGesture = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(_handleSwipe:)];
+    _rightSwipeGesture.direction = UISwipeGestureRecognizerDirectionRight;
+    _rightSwipeGesture.delegate = self;
+    [self.view addGestureRecognizer:_rightSwipeGesture];
     
     _leftShadowImageView = [[UIImageView alloc] initWithImage:_leftShadowImage];
     _leftShadowImageView.contentMode = UIViewContentModeScaleToFill;
@@ -689,27 +703,42 @@ static CGFloat kRNSwipeInertiaDuration = 0.15f;
                 [self showCenterWithDuration: - _centerContainer.left / velocity inertia:YES];
             }
             break;
+            
+        default:
+            break;
     }
 }
 
 
 #pragma mark - Gesture delegate
 
-- (BOOL)gestureRecognizerShouldBegin:(RNDirectionPanGestureRecognizer *)gestureRecognizer {
-    BOOL shouldBegin = _swipeEnabled && !nowAnimating;
-    
-    CGFloat gorizontalVelocity = [gestureRecognizer velocityInView:gestureRecognizer.view].x;
-    if (shouldBegin && self.easyOpening && abs(gorizontalVelocity) > kRNSwipeMinVelocityToForceShow) {
-        [self fastOpenWithVelocity:gorizontalVelocity];
-        shouldBegin = NO;
-    }
-    
-    return shouldBegin;
+- (BOOL)gestureRecognizerShouldBegin:(UIGestureRecognizer *)gestureRecognizer {
+    return _swipeEnabled && !nowAnimating;
+}
+
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
+    return NO;
 }
 
 #pragma mark - Gesture handler
 
-- (void)_handlePan:(RNDirectionPanGestureRecognizer*)recognizer {
+- (void)_handleSwipe:(UISwipeGestureRecognizer *)recognizer {
+    if (recognizer == _leftSwipeGesture) {
+        if (self.visibleState == RNSwipeVisibleCenter) {
+            [self showRightWithDuration:kRNSwipeDefaultDuration inertia:YES];
+        } else if (self.visibleState == RNSwipeVisibleLeft) {
+            [self showCenterWithDuration:kRNSwipeDefaultDuration inertia:YES];
+        }
+    } else if (recognizer == _rightSwipeGesture) {
+        if (self.visibleState == RNSwipeVisibleCenter) {
+            [self showLeftWithDuration:kRNSwipeDefaultDuration inertia:YES];
+        } else if (self.visibleState == RNSwipeVisibleRight) {
+            [self showCenterWithDuration:kRNSwipeDefaultDuration inertia:YES];
+        }
+    }
+}
+
+- (void)_handlePan:(RNDirectionPanGestureRecognizer*)recognizer {    
     // beginning a pan gesture
     if (recognizer.state == UIGestureRecognizerStateBegan) {
         nowDragging = YES;
