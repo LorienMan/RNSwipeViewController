@@ -204,7 +204,9 @@ static CGFloat kRNSwipeInertiaDuration = 0.15f;
 
 - (void)willRotateToInterfaceOrientation:(UIInterfaceOrientation)toInterfaceOrientation duration:(NSTimeInterval)duration {
     [super willRotateToInterfaceOrientation:toInterfaceOrientation duration:duration];
-    [self _resizeForOrienation:toInterfaceOrientation];
+    if (self.rotationEnabled) {
+        [self _resizeForOrienation:toInterfaceOrientation];
+    }
 }
 
 - (BOOL)onScreen {

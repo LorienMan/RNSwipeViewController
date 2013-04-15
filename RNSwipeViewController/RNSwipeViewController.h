@@ -216,6 +216,12 @@ extern NSString * const RNSwipeViewControllerCenterDidAppear;
  */
 @property (assign, nonatomic) BOOL canTapOut;
 
+/** Enable/disable controller rotations.
+ 
+ Default NO;
+ */
+@property (assign, nonatomic) BOOL rotationEnabled;
+
 ///---------------------------------------------------------------------------------------
 /// @name Controller Delegates
 ///---------------------------------------------------------------------------------------
